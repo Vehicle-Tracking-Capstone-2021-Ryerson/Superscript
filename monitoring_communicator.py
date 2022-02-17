@@ -1,12 +1,12 @@
 import socket
-import csv
-import datetime
 from decimal import Decimal
 import time
-
+import requests
 UDP_IP = "192.168.0.34"
 UDP_PORT = 2390
 MESSAGE = "#01\r"
+
+DB_URL = "http://127.0.0.1:5000/blindspot"
 
 
 def establishUDPConnection(UDP_IP, UDP_PORT):
@@ -16,4 +16,7 @@ def establishUDPConnection(UDP_IP, UDP_PORT):
         sock.sendto(MESSAGE.encode(encoding='utf-8'), (UDP_IP, UDP_PORT))
 
         data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
-        print("received message:", str(data))
+        uploadMonitoringDataToLocal(data.decode())
+
+def uploadMonitoringDataToLocal(data):
+    requests.post(DB_URL, data=data)
