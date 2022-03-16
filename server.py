@@ -7,6 +7,7 @@ api = Flask(__name__)
 
 gpsData = []
 blindspotData = []
+obdData = []
 
 @api.route("/", methods=["GET"])
 def home():
@@ -31,6 +32,14 @@ def post_gps():
     gpsData.append(dataObj)
     return "added"
 
+@api.route("/obd", methods=['POST'])
+def post_obd():
+    decoded = request.data.decode()
+    rpm, speed, throttle, airTemp, fuelLevel = decoded.split(",")
+    dataObj = {"rpm": rpm, "speed": speed, "throttle": throttle, "airTemp": airTemp, "fuel": fuelLevel, "time": datetime.now()}
+    obdData.append(dataObj)
+    return "added"
+
 @api.route("/currentGPS", methods=['GET'])
 def get_current_gps():
     return json.jsonify(gpsData)
@@ -46,6 +55,7 @@ def post_end_session():
     json_object = {}
     json_object["gpsData"] = gpsData
     json_object["blindspotData"] = blindspotData
+    json_object["OBD_data"] = obdData
     json_object_str = json.dumps(json_object)
     storage_client = storage.Client()
 

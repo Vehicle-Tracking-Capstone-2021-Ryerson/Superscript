@@ -1,29 +1,44 @@
 import time
 import json
+from urllib import response
 from monitoring_communicator import establishUDPConnection
 # import recording
 import threading
 import multiprocessing as mp
 import gps
 import requests
+import serial
 
 # API_URL = "http://localhost:8080/"
 API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
 
 # cameraModule = recording.camStuff()
 
-UDP_IPs = ["192.168.0.34"]
-UDP_PORT = 2390
-monitoring_threads = []
+# ====================== BLINDSPOT MONITORING VARIABLES ======================
+UDP_IPs = ["192.168.43.46"] # UDP IPs for blindspot monitoring sensors
+UDP_PORT = 2390 # UDP Port for blindspot monitoring sensors
+monitoring_threads = [] # Array of blindspot monitoring threads
+# ============================================================================
 
-DB_URL = "http://127.0.0.1:5000/"
+# ====================== OBD II SERIAL VARIABLES =============================
+serial_str = "/dev/cu.usbmodem101"
+baudRate = 115200
+# ============================================================================
+
+DB_URL = "http://127.0.0.1:5000/" # Local Database URL
 
 uid = -1
+
 
 
 def uploadMonitoringDataToLocal(data, endpoint):
     requests.post(DB_URL+endpoint, data=data)
 
+"""
+GPS Functionality
+
+Starts the gps listener on a given port and then generates gps reports that records and uploads data to listening serer
+"""
 def doGPS():
     session = gps.gps("localhost", "2947")
     session.stream(gps.WATCH_ENABLE | gps.WATCH_NEWSTYLE)
@@ -60,6 +75,27 @@ def doGPS():
             session = None
             print("GPSD has terminated")
 
+def obdSerialReader():
+    obd_two = serial.Serial(serial_str, baudrate=baudRate)
+    
+    while True:
+        obd_two.flushInput()
+        data = obd_two.readline().decode()
+        if(len(data.split(",")) == 5):
+            uploadMonitoringDataToLocal(data, "obd")
+        time.sleep(0.1)
+
+        
+
+"""
+Prepares a driving session
+
+    1) Prompts user for username and password
+    2) Authenticate user
+    3) Retrieves session ID for current session from API
+
+Returns session ID
+"""
 def prepareDrivingSession():
     sessionStart = False
     s_id = -1
@@ -83,7 +119,18 @@ def prepareDrivingSession():
     return s_id
 
 
+"""
+App Initilization Function
 
+    1) Begins driving session
+    
+    2) Initialize sub systems of application
+    2.1) Starts a process for each blindspot sensor
+    2.2) Starts a process for the gps sensor
+    2.3) Starts a process for listening to serial line
+    2.3) Starts a process to await for user commands
+
+"""
 def initialization():
     # cameraThread = threading.Thread(target=cameraModule.captureTime)
     # cameraThread.start()
@@ -97,6 +144,10 @@ def initialization():
 
     gpsT = mp.Process(target=doGPS)
     gpsT.start()
+
+    obdT = mp.Process(target=obdSerialReader)
+    obdT.start()
+
     while(True):
         print("Enter a command: ")
         cmd = input()
@@ -106,6 +157,7 @@ def initialization():
             gpsT.kill()
             for th in monitoring_threads:
                 th.kill()
+            obdT.kill()
             exit(-1)
         
 
