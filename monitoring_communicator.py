@@ -14,7 +14,6 @@ def establishUDPConnection(UDP_IP, UDP_PORT):
     while(True):
 
         sock.sendto(MESSAGE.encode(encoding='utf-8'), (UDP_IP, UDP_PORT))
-
         data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
         uploadMonitoringDataToLocal(data.decode())
 

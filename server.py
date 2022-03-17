@@ -6,7 +6,7 @@ from google.cloud import storage
 api = Flask(__name__)
 
 gpsData = []
-blindspotData = []
+blindspotData = {"F": [], "B": [], "L": [], "R":[]}
 obdData = []
 
 @api.route("/", methods=["GET"])
@@ -15,8 +15,12 @@ def home():
 
 @api.route("/blindspot", methods=['POST'])
 def post_blindspot():
-    dataObj = {"data": request.data.decode(), "time": datetime.now()}
-    blindspotData.append(dataObj)
+    bSpot = request.data.decode()
+    splitBSpot = bSpot.split(",")
+    
+    dataObj = {"data": splitBSpot[1], "time": datetime.now()}
+    blindspotData[splitBSpot[0]].append(dataObj)
+    print(blindspotData)
     return "added"
 
 @api.route("/currentBlindspot", methods=["GET"])
@@ -37,6 +41,7 @@ def post_obd():
     decoded = request.data.decode()
     rpm, speed, throttle, airTemp, fuelLevel = decoded.split(",")
     dataObj = {"rpm": rpm, "speed": speed, "throttle": throttle, "airTemp": airTemp, "fuel": fuelLevel, "time": datetime.now()}
+    print(dataObj)
     obdData.append(dataObj)
     return "added"
 
@@ -57,6 +62,7 @@ def post_end_session():
     json_object["blindspotData"] = blindspotData
     json_object["OBD_data"] = obdData
     json_object_str = json.dumps(json_object)
+    print(json_object_str)
     storage_client = storage.Client()
 
     bucket_name = "session-data"
