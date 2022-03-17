@@ -1,28 +1,50 @@
+import time
 import json
+from urllib import response
 from monitoring_communicator import establishUDPConnection
 # import recording
 import threading
+import multiprocessing as mp
 import gps
 import requests
+import serial
 
-
+# API_URL = "http://localhost:8080/"
 API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
 
 # cameraModule = recording.camStuff()
 
-UDP_IPs = ["192.168.0.34"]
-UDP_PORT = 2390
-monitoring_threads = []
+# ====================== BLINDSPOT MONITORING VARIABLES ======================
+UDP_IPs = ["192.168.43.153"] # UDP IPs for blindspot monitoring sensors
+UDP_PORT = 2390 # UDP Port for blindspot monitoring sensors
+monitoring_threads = [] # Array of blindspot monitoring threads
+# ============================================================================
 
-DB_URL = "http://127.0.0.1:5000/"
+# ====================== OBD II SERIAL VARIABLES =============================
+serial_str = "/dev/cu.usbmodem1101"
+baudRate = 115200
+# ============================================================================
+
+DB_URL = "http://127.0.0.1:5000/" # Local Database URL
+
+uid = -1
+
 
 
 def uploadMonitoringDataToLocal(data, endpoint):
     requests.post(DB_URL+endpoint, data=data)
 
+"""
+GPS Functionality
+
+Starts the gps listener on a given port and then generates gps reports that records and uploads data to listening serer
+"""
 def doGPS():
     session = gps.gps("localhost", "2947")
     session.stream(gps.WATCH_ENABLE | gps.WATCH_NEWSTYLE)
+    last_gps_location = 0
+    last_appended = time.time()
+    dataStr = ""
     while True:
         try:
             report = session.next()
@@ -33,7 +55,18 @@ def doGPS():
                 lat = report['lat']
                 lon = report['lon']
                 dataStr = f"{lat},{lon}"
-                uploadMonitoringDataToLocal(dataStr, "gps")
+                if(time.time() - last_gps_location > 30 or last_gps_location == 0):
+                    last_gps_location = time.time()
+                    payload = {"location_data": dataStr}
+                    response = requests.get(API_URL+"speedLimit", params=payload)
+
+                    respData = response.json()[0]
+                    street = respData["street"]
+                    speed = str(respData["speedLimit"]) + respData["speedUnit"]
+                    telemetryStr = f"{lat},{lon},{street},{speed}"
+                    uploadMonitoringDataToLocal(telemetryStr, "gps")
+                
+                
         except KeyError:
             pass
         except KeyboardInterrupt:
@@ -42,30 +75,90 @@ def doGPS():
             session = None
             print("GPSD has terminated")
 
+def obdSerialReader():
+    obd_two = serial.Serial(serial_str, baudrate=baudRate)
+    
+    while True:
+        obd_two.flushInput()
+        data = obd_two.readline().decode()
+        if(len(data.split(",")) == 5):
+            uploadMonitoringDataToLocal(data, "obd")
+        time.sleep(0.1)
+
+        
+
+"""
+Prepares a driving session
+
+    1) Prompts user for username and password
+    2) Authenticate user
+    3) Retrieves session ID for current session from API
+
+Returns session ID
+"""
 def prepareDrivingSession():
-    print("Enter a username: ")
-    username = input()
-    print("Enter a password: ")
-    password = input()
-    response = requests.get(API_URL+"auth", auth=(username, password))
-    responseDat = response.text
-    decoded = json.decoder(responseDat)
-    userKey = decoded["key"]
+    sessionStart = False
+    s_id = -1
+    while(sessionStart == False):
+        print("Enter a username: ")
+        username = "User2"
+        print("Enter a password: ")
+        password = "9671111"
+        payload = {"username": username, "password": password}
+        response = requests.get(API_URL+"auth", params=payload)
+        uid = response.json()
+        if(uid != "Authentication Failed"):
+            payload = {"_id": uid}
+
+            response = requests.get(API_URL+"start", params=payload)
+            s_id = response.text
+            if(s_id != "Error"):
+                # print("SESSION ID", s_id)
+                sessionStart = True
+    
+    return s_id
 
 
+"""
+App Initilization Function
 
+    1) Begins driving session
+    
+    2) Initialize sub systems of application
+    2.1) Starts a process for each blindspot sensor
+    2.2) Starts a process for the gps sensor
+    2.3) Starts a process for listening to serial line
+    2.3) Starts a process to await for user commands
+
+"""
 def initialization():
     # cameraThread = threading.Thread(target=cameraModule.captureTime)
     # cameraThread.start()
-    prepareDrivingSession()
+    s_id = prepareDrivingSession()
     for ip in UDP_IPs:
-        mT = threading.Thread(
-            target=establishUDPConnection, args=(ip, UDP_PORT))
+        # mT = threading.Thread(
+        #    target=establishUDPConnection, args=(ip, UDP_PORT))
+        mT = mp.Process(target=establishUDPConnection, args=(ip, UDP_PORT))
         mT.start()
         monitoring_threads.append(mT)
 
-    gpsT = threading.Thread(target=doGPS)
+    gpsT = mp.Process(target=doGPS)
     gpsT.start()
+
+    obdT = mp.Process(target=obdSerialReader)
+    obdT.start()
+
+    while(True):
+        print("Enter a command: ")
+        cmd = input()
+
+        if(cmd == "end"):
+            requests.post(DB_URL+"endSession", data=s_id)
+            gpsT.kill()
+            for th in monitoring_threads:
+                th.kill()
+            obdT.kill()
+            exit(-1)
         
 
 
