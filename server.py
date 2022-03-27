@@ -20,7 +20,7 @@ def post_blindspot():
     
     dataObj = {"data": splitBSpot[1], "time": datetime.now()}
     blindspotData[splitBSpot[0]].append(dataObj)
-    print(blindspotData)
+    # print(blindspotData)
     return "added"
 
 @api.route("/currentBlindspot", methods=["GET"])
@@ -30,7 +30,7 @@ def get_current_blindspot():
 @api.route("/gps", methods=['POST'])
 def post_gps():
     decoded = request.data.decode()
-    print(decoded)
+    # print(decoded)
     lat,lon,street,speed = decoded.split(",")
     dataObj = {"lat": lat, "lon": lon, "street": street, "speed": speed, "time": datetime.now()}
     gpsData.append(dataObj)
@@ -41,7 +41,7 @@ def post_obd():
     decoded = request.data.decode()
     rpm, speed, throttle, airTemp, fuelLevel = decoded.split(",")
     dataObj = {"rpm": rpm, "speed": speed, "throttle": throttle, "airTemp": airTemp, "fuel": fuelLevel, "time": datetime.now()}
-    print(dataObj)
+    # print(dataObj)
     obdData.append(dataObj)
     return "added"
 
