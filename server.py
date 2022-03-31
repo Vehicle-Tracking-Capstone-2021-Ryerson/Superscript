@@ -1,12 +1,13 @@
 from crypt import methods
 from datetime import datetime
 from flask import Flask, json, request
+from markupsafe import escape
 from google.cloud import storage
 
 api = Flask(__name__)
 
-gpsData = []
-blindspotData = {"F": [], "B": [], "L": [], "R":[]}
+gpsData = [{"lat": 33, "lon": 33, "street": "Bloor St", "speed": 41.2, "time": datetime.now()}, {"lat": 32, "lon": 31, "street": "Bloor St", "speed": 40.3, "time": datetime.now()}]
+blindspotData = {"F": [150,200], "B": [], "L": [], "R":[]}
 obdData = []
 
 @api.route("/", methods=["GET"])
@@ -51,8 +52,28 @@ def get_current_gps():
 
 @api.route("/getLastGPS", methods=['GET'])
 def get_last_gps():
-    lastGPS = gpsData[len(gpsData) - 1]
-    return json.jsonify(lastGPS)
+    if(len(gpsData) > 0):
+        lastGPS = gpsData[len(gpsData) - 1]
+        return json.jsonify(lastGPS)
+    return json.jsonify([])
+
+@api.route("/getLastBlindspot/<pos>", methods=['GET'])
+def get_last_blindspot(pos):
+    pos = escape(pos)
+    BSMLen = len(blindspotData[pos])
+    if(BSMLen > 0):
+        lastBSM = blindspotData[pos][len(blindspotData[pos]) - 1]
+        return json.jsonify(lastBSM)
+    else:
+        return json.jsonify([])
+
+@api.route("/getLastOBD", methods=['GET'])
+def get_last_OBD():
+    if(len(obdData) > 0):
+        lastOBD = obdData[len(obdData) - 1]
+        return json.jsonify(lastOBD)
+    return json.jsonify([])
+    
 
 @api.route("/endSession", methods=['POST'])
 def post_end_session():
