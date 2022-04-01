@@ -2,9 +2,19 @@ import socket
 from decimal import Decimal
 import time
 import requests
+import RPi.GPIO as GPIO
+
+
 UDP_IP = "192.168.0.34"
 UDP_PORT = 2390
 MESSAGE = "#01\r"
+
+buzzerPin = 4
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(buzzerPin, GPIO.OUT)
+GPIO.setwarnings(False)
+
+buzzTime = -1
 
 DB_URL = "http://127.0.0.1:5000/blindspot"
 
@@ -17,12 +27,26 @@ def establishUDPConnection(UDP_IP, UDP_PORT):
 
             sock.sendto(MESSAGE.encode(encoding='utf-8'), (UDP_IP, UDP_PORT))
             data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
-            print(data)
+            # print(data)
+            incomingBSM = data.decode()
+            whichOne, dist = incomingBSM.split(",")
+
+            if(time.time_ns() - buzzTime > 500000000):
+                GPIO.output(buzzerPin, GPIO.LOW)
+
+            if(whichOne == "L" or whichOne == "R"):
+                if(int(dist) < 100):
+                    GPIO.output(buzzerPin, GPIO.HIGH)
+                    buzzTime = time.time_ns()
+                else:
+                    GPIO.output(buzzerPin, GPIO.LOW)
+
+
             uploadMonitoringDataToLocal(data.decode())
-    except requests.Timeout as err:
+    except sock.timeout as err:
         print("Timed out... reopening")
         sock.close()
-        establishUDPConnection(UDP_IP, UDP_PORT)
+    establishUDPConnection(UDP_IP, UDP_PORT)
 
 def uploadMonitoringDataToLocal(data):
     requests.post(DB_URL, data=data)

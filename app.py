@@ -15,13 +15,13 @@ API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
 # cameraModule = recording.camStuff()
 
 # ====================== BLINDSPOT MONITORING VARIABLES ======================
-UDP_IPs = ["192.168.248.61", "192.168.248.218", "192.168.248.192", "192.168.248.58"] # UDP IPs for blindspot monitoring sensors
+UDP_IPs = ["192.168.43.46", "192.168.43.170", "192.168.43.192", "192.168.43.153"] # UDP IPs for blindspot monitoring sensors
 UDP_PORT = 2390 # UDP Port for blindspot monitoring sensors
 monitoring_threads = [] # Array of blindspot monitoring threads
 # ============================================================================
 
 # ====================== OBD II SERIAL VARIABLES =============================
-serial_str = "/dev/cu.usbmodem101"
+serial_str = "/dev/ttyACM0"
 baudRate = 115200
 # ============================================================================
 
