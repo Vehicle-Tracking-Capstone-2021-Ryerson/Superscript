@@ -6,7 +6,7 @@ from google.cloud import storage
 
 api = Flask(__name__)
 
-gpsData = []
+gpsData = [{"lat": 31, "lon": 31, "street": "blah", "speed": 50, "time": datetime.now()}]
 blindspotData = {"F": [], "B": [], "L": [], "R":[]}
 obdData = []
 

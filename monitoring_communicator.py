@@ -2,7 +2,7 @@ import socket
 from decimal import Decimal
 import time
 import requests
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 
 
 UDP_IP = "192.168.0.34"
@@ -10,9 +10,9 @@ UDP_PORT = 2390
 MESSAGE = "#01\r"
 
 buzzerPin = 4
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(buzzerPin, GPIO.OUT)
-GPIO.setwarnings(False)
+#GPIO.setmode(GPIO.BCM)
+#GPIO.setup(buzzerPin, GPIO.OUT)
+#GPIO.setwarnings(False)
 
 buzzTime = -1
 
@@ -30,9 +30,9 @@ def establishUDPConnection(UDP_IP, UDP_PORT):
             # print(data)
             incomingBSM = data.decode()
             whichOne, dist = incomingBSM.split(",")
-
+            """
             if(time.time_ns() - buzzTime > 500000000):
-                GPIO.output(buzzerPin, GPIO.LOW)
+                #GPIO.output(buzzerPin, GPIO.LOW)
 
             if(whichOne == "L" or whichOne == "R"):
                 if(int(dist) < 100):
@@ -40,6 +40,7 @@ def establishUDPConnection(UDP_IP, UDP_PORT):
                     buzzTime = time.time_ns()
                 else:
                     GPIO.output(buzzerPin, GPIO.LOW)
+            """
 
 
             uploadMonitoringDataToLocal(data.decode())

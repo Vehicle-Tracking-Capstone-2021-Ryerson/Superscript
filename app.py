@@ -85,7 +85,31 @@ def obdSerialReader():
             uploadMonitoringDataToLocal(data, "obd")
         time.sleep(0.1)
 
-        
+def buzzerForSpeedcheck():
+    speedBuzzPin = 5
+    beeping = 0
+    #GPIO.setmode(GPIO.BCM)
+    #GPIO.setup(speedBuzzPin, GPIO.OUT)
+    #GPIO.setwarnings(False)
+
+    timer = time.time_ns()
+    while(True):
+        gpsReq = requests.get(DB_URL + "getLastGPS")
+
+        if(len(gpsReq.json()) > 0):
+            obdReq = requests.get(DB_URL + "getLastOBD")
+            if(len(obdReq.json()) > 0):
+                carSpeed = obdReq.json()['speed']
+                speedLimit = gpsReq.json()['speed']
+                if(carSpeed > speedLimit + 10):
+                    #GPIO.output(speedBuzzPin, GPIO.HIGH)
+                    beeping = 1
+
+
+        while(time.time_ns() - timer > 1e+9):
+            timer = time.time_ns()
+        beeping = 0
+
 
 """
 Prepares a driving session
