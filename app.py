@@ -93,6 +93,7 @@ def buzzerForSpeedcheck():
     #GPIO.setwarnings(False)
 
     timer = time.time_ns()
+    lastBeep = -1
     while(True):
         gpsReq = requests.get(DB_URL + "getLastGPS")
 
@@ -101,13 +102,13 @@ def buzzerForSpeedcheck():
             if(len(obdReq.json()) > 0):
                 carSpeed = obdReq.json()['speed']
                 speedLimit = gpsReq.json()['speed']
-                if(carSpeed > speedLimit + 10):
+                if(carSpeed > speedLimit + 10 and (time.time_ns() - lastBeep) > 3e+9):
                     #GPIO.output(speedBuzzPin, GPIO.HIGH)
                     beeping = 1
+                    print("BEEEP")
 
 
-        while(time.time_ns() - timer > 1e+9):
-            timer = time.time_ns()
+        time.sleep(1)
         beeping = 0
 
 
@@ -171,6 +172,9 @@ def initialization():
 
     obdT = mp.Process(target=obdSerialReader)
     obdT.start()
+
+    speedCheckBuzzer = mp.Process(target=buzzerForSpeedcheck)
+    speedCheckBuzzer.start()
 
     while(True):
         print("Enter a command: ")
