@@ -6,7 +6,7 @@ from google.cloud import storage
 
 api = Flask(__name__)
 
-gpsData = [{"lat": 31, "lon": 31, "street": "blah", "speed": 50, "time": datetime.now()}]
+gpsData = []
 blindspotData = {"F": [], "B": [], "L": [], "R":[]}
 obdData = [{"rpm": 1400, "speed": 48, "throttle": 2400, "airTemp": 0, "fuel": 38.85, "time": datetime.now()}]
 
@@ -32,8 +32,8 @@ def get_current_blindspot():
 def post_gps():
     decoded = request.data.decode()
     # print(decoded)
-    lat,lon,street,speed = decoded.split(",")
-    dataObj = {"lat": lat, "lon": lon, "street": street, "speed": speed, "time": datetime.now()}
+    lat,lon,street,speed,speedUnit = decoded.split(",")
+    dataObj = {"lat": lat, "lon": lon, "street": street, "speed": speed, "speedUnit": speedUnit, "time": datetime.now()}
     gpsData.append(dataObj)
     return "added"
 

@@ -8,6 +8,7 @@ import multiprocessing as mp
 import gps
 import requests
 import serial
+import RPi.GPIO as GPIO
 
 # API_URL = "http://localhost:8080/"
 API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
@@ -15,7 +16,7 @@ API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
 # cameraModule = recording.camStuff()
 
 # ====================== BLINDSPOT MONITORING VARIABLES ======================
-UDP_IPs = ["192.168.43.46", "192.168.43.170", "192.168.43.192", "192.168.43.153"] # UDP IPs for blindspot monitoring sensors
+UDP_IPs = ["192.168.30.61", "192.168.30.218", "192.168.30.58", "192.168.30.192"] # UDP IPs for blindspot monitoring sensors
 UDP_PORT = 2390 # UDP Port for blindspot monitoring sensors
 monitoring_threads = [] # Array of blindspot monitoring threads
 # ============================================================================
@@ -62,8 +63,9 @@ def doGPS():
 
                     respData = response.json()[0]
                     street = respData["street"]
-                    speed = str(respData["speedLimit"]) + respData["speedUnit"]
-                    telemetryStr = f"{lat},{lon},{street},{speed}"
+                    speedUnit = respData["speedUnit"]
+                    speed = respData["speedLimit"]
+                    telemetryStr = f"{lat},{lon},{street},{speed},{speedUnit}"
                     uploadMonitoringDataToLocal(telemetryStr, "gps")
                 
                 
@@ -88,9 +90,9 @@ def obdSerialReader():
 def buzzerForSpeedcheck():
     speedBuzzPin = 5
     beeping = 0
-    #GPIO.setmode(GPIO.BCM)
-    #GPIO.setup(speedBuzzPin, GPIO.OUT)
-    #GPIO.setwarnings(False)
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(speedBuzzPin, GPIO.OUT)
+    GPIO.setwarnings(False)
 
     timer = time.time_ns()
     lastBeep = -1
@@ -100,15 +102,17 @@ def buzzerForSpeedcheck():
         if(len(gpsReq.json()) > 0):
             obdReq = requests.get(DB_URL + "getLastOBD")
             if(len(obdReq.json()) > 0):
-                carSpeed = obdReq.json()['speed']
-                speedLimit = gpsReq.json()['speed']
-                if(carSpeed > speedLimit + 10 and (time.time_ns() - lastBeep) > 3e+9):
-                    #GPIO.output(speedBuzzPin, GPIO.HIGH)
+                carSpeed = int(obdReq.json()['speed'])
+                speedLimit = int(gpsReq.json()['speed'])
+
+                if(carSpeed > speedLimit + 10 and (time.time_ns() - lastBeep) > 3e+9 and speedLimit != 0):
+                    GPIO.output(speedBuzzPin, GPIO.HIGH)
                     beeping = 1
                     print("BEEEP")
 
-
         time.sleep(1)
+        GPIO.output(speedBuzzPin, GPIO.LOW)
+
         beeping = 0
 
 
@@ -187,6 +191,9 @@ def initialization():
                 th.kill()
             obdT.kill()
             exit(-1)
+
+        elif(cmd == "kbs"):
+            speedCheckBuzzer.kill()
         
 
 
