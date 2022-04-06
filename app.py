@@ -1,7 +1,6 @@
 import time
-import json
-from urllib import response
 from monitoring_communicator import establishUDPConnection
+from picamera import PiCamera, PiCameraCircularIO
 import multiprocessing as mp
 import gps
 import requests
@@ -134,6 +133,27 @@ def prepareDrivingSession():
     
     return s_id
 
+def doCamStuff(acc):
+    camera = PiCamera(resolution=(1920, 1080))
+    stream = PiCameraCircularIO(camera, seconds=60)
+    camera.start_recording(stream, format='h264')
+    i=1
+    try:
+        while True:
+            camera.wait_recording(60)
+            if(acc.value == 1.0):
+                stream.copy_to('/home/pi/Desktop/camera/rec_%d.h264' % i)
+                i += 1
+            elif(acc.value == 2.0):
+                raise ValueError
+    except ValueError:
+        print("Stopping...")
+    finally:
+        print("IN FINALLY")
+        camera.stop_recording()
+        stream.close()
+        exit(1)
+
 
 """
 App Initilization Function
@@ -167,6 +187,10 @@ def initialization():
     speedCheckBuzzer = mp.Process(target=buzzerForSpeedcheck)
     speedCheckBuzzer.start()
 
+    acc = mp.Value('d', 0.0)
+    cameraT = mp.Process(target=doCamStuff, args=(acc,))
+    cameraT.start()
+
     while(True):
         print("Enter a command: ")
         cmd = input()
@@ -177,10 +201,32 @@ def initialization():
             for th in monitoring_threads:
                 th.kill()
             obdT.kill()
+            speedCheckBuzzer.kill()
+            cameraT.kill()
+            #stream.close()
+            #camera.stop_recording()
             exit(-1)
 
         elif(cmd == "kbs"):
             speedCheckBuzzer.kill()
+
+        elif(cmd == "acc"):
+            acc.value = 1.0
+
+        elif(cmd == "softkill"):
+            gpsT.kill()
+            for th in monitoring_threads:
+                th.kill()
+            obdT.kill()
+            speedCheckBuzzer.kill()
+            acc.value = 2.0
+            print("Waiting for camera to die...")
+            while(cameraT.is_alive()):
+                print()
+
+            exit(1)
+            #stream.close()
+            #camera.stop_recording()
         
 
 

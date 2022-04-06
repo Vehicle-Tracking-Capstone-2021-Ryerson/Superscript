@@ -30,7 +30,7 @@ def establishUDPConnection(UDP_IP, UDP_PORT):
 
             if(whichOne == "L" or whichOne == "R"):
                 #print(time.time_ns() - buzzTime)
-                if(int(dist) < 100 and int(dist) != 0 and time.time_ns() - buzzTime > 1e+10 ):
+                if(int(dist) < 100 and int(dist) != 0 and time.time_ns() - buzzTime > 2e+10 ):
                     if(whichOne == "L"):
                         playsound("Sounds/left_warning.mp3", block=False)
                     else:
