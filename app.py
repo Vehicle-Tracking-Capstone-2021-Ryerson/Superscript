@@ -2,13 +2,11 @@ import time
 import json
 from urllib import response
 from monitoring_communicator import establishUDPConnection
-# import recording
-import threading
 import multiprocessing as mp
 import gps
 import requests
 import serial
-import RPi.GPIO as GPIO
+from playsound import playsound
 
 # API_URL = "http://localhost:8080/"
 API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
@@ -88,12 +86,6 @@ def obdSerialReader():
         time.sleep(0.1)
 
 def buzzerForSpeedcheck():
-    speedBuzzPin = 5
-    beeping = 0
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(speedBuzzPin, GPIO.OUT)
-    GPIO.setwarnings(False)
-
     timer = time.time_ns()
     lastBeep = -1
     while(True):
@@ -105,15 +97,10 @@ def buzzerForSpeedcheck():
                 carSpeed = int(obdReq.json()['speed'])
                 speedLimit = int(gpsReq.json()['speed'])
 
-                if(carSpeed > speedLimit + 10 and (time.time_ns() - lastBeep) > 3e+9 and speedLimit != 0):
-                    GPIO.output(speedBuzzPin, GPIO.HIGH)
-                    beeping = 1
-                    print("BEEEP")
+                if(carSpeed > speedLimit + 10 and (time.time_ns() - lastBeep) > 20e+9 and speedLimit != 0):
+                    playsound("Sounds/speed_limit_warning.mp3", block=False)
+                    lastBeep = time.time_ns()
 
-        time.sleep(1)
-        GPIO.output(speedBuzzPin, GPIO.LOW)
-
-        beeping = 0
 
 
 """

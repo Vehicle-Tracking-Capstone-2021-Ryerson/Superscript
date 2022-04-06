@@ -1,18 +1,12 @@
 import socket
-from decimal import Decimal
 import time
 import requests
-import RPi.GPIO as GPIO
+from playsound import playsound
 
 
 UDP_IP = "192.168.0.34"
 UDP_PORT = 2390
 MESSAGE = "#01\r"
-
-buzzerPin = 4
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(buzzerPin, GPIO.OUT)
-GPIO.setwarnings(False)
 
 
 DB_URL = "http://127.0.0.1:5000/blindspot"
@@ -30,22 +24,18 @@ def establishUDPConnection(UDP_IP, UDP_PORT):
             # print(data)
             incomingBSM = data.decode()
             whichOne, dist = incomingBSM.split(",")
-            
-            if(time.time_ns() - buzzTime > 500000000):
-                GPIO.output(buzzerPin, GPIO.LOW)
 
             if whichOne == "B":
                     print(whichOne + " " + str(dist))
 
             if(whichOne == "L" or whichOne == "R"):
                 #print(time.time_ns() - buzzTime)
-                if(int(dist) < 100 and time.time_ns() - buzzTime > 5e+9 ):
-                    GPIO.output(buzzerPin, GPIO.HIGH)
+                if(int(dist) < 100 and int(dist) != 0 and time.time_ns() - buzzTime > 1e+10 ):
+                    if(whichOne == "L"):
+                        playsound("Sounds/left_warning.mp3", block=False)
+                    else:
+                        playsound("Sounds/right_warning.mp3", block=False)
                     buzzTime = time.time_ns()
-                if(time.time_ns() - buzzTime > 1e+9):
-                    GPIO.output(buzzerPin, GPIO.LOW)
-            
-
 
             uploadMonitoringDataToLocal(data.decode())
     except socket.timeout as err:
