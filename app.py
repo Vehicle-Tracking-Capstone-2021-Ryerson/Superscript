@@ -54,7 +54,7 @@ def doGPS():
                 lat = report['lat']
                 lon = report['lon']
                 dataStr = f"{lat},{lon}"
-                if(time.time() - last_gps_location > 30 or last_gps_location == 0):
+                if(time.time() - last_gps_location > 2.5 or last_gps_location == 0):
                     last_gps_location = time.time()
                     payload = {"location_data": dataStr}
                     response = requests.get(API_URL+"speedLimit", params=payload)
