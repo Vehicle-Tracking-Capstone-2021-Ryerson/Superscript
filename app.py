@@ -180,7 +180,7 @@ def initialization():
     password = conn.recv(1024)
     password = password.decode()
 
-    s_id = prepareDrivingSession()
+    s_id = prepareDrivingSession(username, password)
 
     if(s_id != None):
         conn.close()
