@@ -97,3 +97,6 @@ def initialization():
 
         elif(cmd == "acc"):
             print("ACC CHANGE")
+
+if __name__ == "__main__":
+    initialization()
