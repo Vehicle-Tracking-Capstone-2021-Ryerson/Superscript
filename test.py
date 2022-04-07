@@ -52,14 +52,15 @@ def initialization():
     s.bind(("127.0.0.1", cmdListenerPort))
     s.listen(5)
 
+    print("awaiting connection...")
     conn, addr  = s.accept()
 
     username = conn.recv(1024)
     username = username.decode()
-
+    print("GOT USER "+username)
     password = conn.recv(1024)
     password = password.decode()
-
+    print("GOT PASSWORD "+ password)
     s_id = prepareDrivingSession(username, password)
 
     if(s_id != None):
