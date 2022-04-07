@@ -1,3 +1,4 @@
+import socket
 import time
 from monitoring_communicator import establishUDPConnection
 from picamera import PiCamera, PiCameraCircularIO
@@ -5,7 +6,7 @@ import multiprocessing as mp
 import gps
 import requests
 import serial
-from playsound import playsound
+import subprocess
 
 # API_URL = "http://localhost:8080/"
 API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
@@ -13,7 +14,7 @@ API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
 # cameraModule = recording.camStuff()
 
 # ====================== BLINDSPOT MONITORING VARIABLES ======================
-UDP_IPs = ["192.168.30.61", "192.168.30.218", "192.168.30.58", "192.168.30.192"] # UDP IPs for blindspot monitoring sensors
+UDP_IPs = ["192.168.30.61", "192.168.30.218", "192.168.30.96", "192.168.30.58"] # UDP IPs for blindspot monitoring sensors
 UDP_PORT = 2390 # UDP Port for blindspot monitoring sensors
 monitoring_threads = [] # Array of blindspot monitoring threads
 # ============================================================================
@@ -27,7 +28,7 @@ DB_URL = "http://127.0.0.1:5000/" # Local Database URL
 
 uid = -1
 
-
+listenForAccidentPort = 4000 # PORT FOR ACCIDENT DETECTION
 
 def uploadMonitoringDataToLocal(data, endpoint):
     requests.post(DB_URL+endpoint, data=data)
@@ -53,7 +54,7 @@ def doGPS():
                 lat = report['lat']
                 lon = report['lon']
                 dataStr = f"{lat},{lon}"
-                if(time.time() - last_gps_location > 2.5 or last_gps_location == 0):
+                if(time.time() - last_gps_location > 5.0 or last_gps_location == 0):
                     last_gps_location = time.time()
                     payload = {"location_data": dataStr}
                     response = requests.get(API_URL+"speedLimit", params=payload)
@@ -97,7 +98,7 @@ def buzzerForSpeedcheck():
                 speedLimit = int(gpsReq.json()['speed'])
 
                 if(carSpeed > speedLimit + 10 and (time.time_ns() - lastBeep) > 20e+9 and speedLimit != 0):
-                    playsound("Sounds/speed_limit_warning.mp3", block=False)
+                    subprocess.Popen(["mpg123","-q","/home/pi/Desktop/Superscript/Sounds/speed_limit_warning.mp3"])
                     lastBeep = time.time_ns()
 
 
@@ -154,6 +155,20 @@ def doCamStuff(acc):
         stream.close()
         exit(1)
 
+def listenForSavingRecording(acc):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("127.0.0.1", listenForAccidentPort))
+    print("Listening for saving...")
+    conn, addr = sock.accept()
+    
+    while True:
+        dat = conn.recv(1024)
+        if(dat.decode() == "record"):
+            acc.value = 1.0
+        else:
+            acc.value = 0.0
+        
+
 
 """
 App Initilization Function
@@ -190,6 +205,9 @@ def initialization():
     acc = mp.Value('d', 0.0)
     cameraT = mp.Process(target=doCamStuff, args=(acc,))
     cameraT.start()
+ 
+    #lFSRT = mp.Process(target=listenForSavingRecording, args=(acc, ))
+    #lFSRT.start()
 
     while(True):
         print("Enter a command: ")

@@ -8,7 +8,7 @@ api = Flask(__name__)
 
 gpsData = []
 blindspotData = {"F": [], "B": [], "L": [], "R":[]}
-obdData = [{"rpm": 1400, "speed": 48, "throttle": 2400, "airTemp": 0, "fuel": 38.85, "time": datetime.now()}]
+obdData = []
 
 @api.route("/", methods=["GET"])
 def home():

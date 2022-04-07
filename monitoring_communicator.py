@@ -1,7 +1,7 @@
 import socket
 import time
 import requests
-from playsound import playsound
+import subprocess
 
 
 UDP_IP = "192.168.0.34"
@@ -25,16 +25,18 @@ def establishUDPConnection(UDP_IP, UDP_PORT):
             incomingBSM = data.decode()
             whichOne, dist = incomingBSM.split(",")
 
-            if whichOne == "B":
-                    print(whichOne + " " + str(dist))
+            #if whichOne == "B":
+            print(whichOne + " " + str(dist))
 
             if(whichOne == "L" or whichOne == "R"):
                 #print(time.time_ns() - buzzTime)
-                if(int(dist) < 100 and int(dist) != 0 and time.time_ns() - buzzTime > 2e+10 ):
+                if(int(dist) < 120 and int(dist) != 0 and time.time_ns() - buzzTime > 2e+10 ):
                     if(whichOne == "L"):
-                        playsound("Sounds/left_warning.mp3", block=False)
+                        print("PLAYING!!!")
+                        subprocess.Popen(["mpg123","-q","/home/pi/Desktop/Superscript/Sounds/left_warning.mp3"])
                     else:
-                        playsound("Sounds/right_warning.mp3", block=False)
+                        subprocess.Popen(["mpg123","-q", "/home/pi/Desktop/Superscript/Sounds/right_warning.mp3"])
+
                     buzzTime = time.time_ns()
 
             uploadMonitoringDataToLocal(data.decode())
