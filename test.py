@@ -87,7 +87,7 @@ def initialization():
     while(True):
         cmd = conn.recv(1024)
         cmd = cmd.decode()
-
+        print("GOT CMD", cmd)
         if(cmd == "end"):
             requests.get(DB_URL+"end", data=s_id)
             print("END")
