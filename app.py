@@ -28,8 +28,6 @@ DB_URL = "http://127.0.0.1:5000/" # Local Database URL
 
 uid = -1
 
-listenForAccidentPort = 4000 # PORT FOR ACCIDENT DETECTION
-
 def uploadMonitoringDataToLocal(data, endpoint):
     requests.post(DB_URL+endpoint, data=data)
 
@@ -112,14 +110,10 @@ Prepares a driving session
 
 Returns session ID
 """
-def prepareDrivingSession():
+def prepareDrivingSession(username, password):
     sessionStart = False
     s_id = -1
     while(sessionStart == False):
-        print("Enter a username: ")
-        username = "User2"
-        print("Enter a password: ")
-        password = "9671111"
         payload = {"username": username, "password": password}
         response = requests.get(API_URL+"auth", params=payload)
         uid = response.json()
@@ -155,18 +149,6 @@ def doCamStuff(acc):
         stream.close()
         exit(1)
 
-def listenForSavingRecording(acc):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(("127.0.0.1", listenForAccidentPort))
-    print("Listening for saving...")
-    conn, addr = sock.accept()
-    
-    while True:
-        dat = conn.recv(1024)
-        if(dat.decode() == "record"):
-            acc.value = 1.0
-        else:
-            acc.value = 0.0
         
 
 
@@ -183,12 +165,27 @@ App Initilization Function
 
 """
 def initialization():
-    # cameraThread = threading.Thread(target=cameraModule.captureTime)
-    # cameraThread.start()
+    # CREATE SOCKET FOR COMMANDS
+    s = socket.socket()
+    cmdListenerPort = 4000 # PORT FOR 
+    host = socket.gethostname()
+    s.bind(("127.0.0.1", cmdListenerPort))
+    s.listen(5)
+
+    conn, addr  = s.accept()
+
+    username = conn.recv(1024)
+    username = username.decode()
+
+    password = conn.recv(1024)
+    password = password.decode()
+
     s_id = prepareDrivingSession()
+
+    if(s_id != None):
+        conn.close()
+        exit(1)
     for ip in UDP_IPs:
-        # mT = threading.Thread(
-        #    target=establishUDPConnection, args=(ip, UDP_PORT))
         mT = mp.Process(target=establishUDPConnection, args=(ip, UDP_PORT))
         mT.start()
         monitoring_threads.append(mT)
@@ -206,23 +203,20 @@ def initialization():
     cameraT = mp.Process(target=doCamStuff, args=(acc,))
     cameraT.start()
  
-    #lFSRT = mp.Process(target=listenForSavingRecording, args=(acc, ))
-    #lFSRT.start()
 
     while(True):
-        print("Enter a command: ")
-        cmd = input()
+        cmd = conn.recv(1024)
+        cmd = cmd.decode()
 
         if(cmd == "end"):
-            requests.post(DB_URL+"endSession", data=s_id)
+            requests.get(DB_URL+"end", data=s_id)
             gpsT.kill()
             for th in monitoring_threads:
                 th.kill()
             obdT.kill()
             speedCheckBuzzer.kill()
             cameraT.kill()
-            #stream.close()
-            #camera.stop_recording()
+            conn.close()
             exit(-1)
 
         elif(cmd == "kbs"):
@@ -243,8 +237,7 @@ def initialization():
                 print()
 
             exit(1)
-            #stream.close()
-            #camera.stop_recording()
+
         
 
 

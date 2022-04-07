@@ -9,6 +9,7 @@ api = Flask(__name__)
 gpsData = []
 blindspotData = {"F": [], "B": [], "L": [], "R":[]}
 obdData = []
+accident = False
 
 @api.route("/", methods=["GET"])
 def home():
@@ -74,6 +75,11 @@ def get_last_OBD():
         return json.jsonify(lastOBD)
     return json.jsonify([])
     
+@api.route("/accident", methods=["POST"])
+def post_accident_detected():
+    global accident
+    accident = True
+    return accident
 
 @api.route("/endSession", methods=['POST'])
 def post_end_session():
@@ -82,6 +88,7 @@ def post_end_session():
     json_object["gpsData"] = gpsData
     json_object["blindspotData"] = blindspotData
     json_object["OBD_data"] = obdData
+    json_object["accident"] = accident
     json_object_str = json.dumps(json_object)
     print(json_object_str)
     storage_client = storage.Client()
