@@ -126,6 +126,8 @@ def prepareDrivingSession(username, password):
             if(s_id != "Error"):
                 # print("SESSION ID", s_id)
                 sessionStart = True
+            else:
+                s_id = -1
     
     return s_id,uid
 """
@@ -182,9 +184,7 @@ def initialization():
     password = password.decode()
     s_id, u_id = prepareDrivingSession(username, password)
     print("got driving session", s_id)
-    if(s_id != None):
-        requests.post(DB_URL+"endSession", params={"s_id": s_id, "_id": u_id})
-        requests.get(API_URL+"end", params={"token": s_id, "_id": u_id})
+    if(s_id == None or s_id == -1):
         s.close()
         conn.close()
         exit(1)
@@ -212,7 +212,11 @@ def initialization():
         cmd = cmd.decode()
 
         if(cmd == "end"):
-            requests.post(DB_URL+"endSession", data={"s_id": s_id})
+            requests.post(DB_URL+"endSession", params={"s_id": s_id, "_id": u_id})
+            try:
+                requests.get(API_URL+"end", params={"token": s_id, "_id": u_id})
+            except:
+                print("failed to close session")
             gpsT.kill()
             for th in monitoring_threads:
                 th.kill()
