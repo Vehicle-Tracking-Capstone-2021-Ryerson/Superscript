@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Flask, json, request
 from markupsafe import escape
 from google.cloud import storage
+import requests
 
 api = Flask(__name__)
 
@@ -83,7 +84,7 @@ def post_accident_detected():
 
 @api.route("/endSession", methods=['POST'])
 def post_end_session():
-    blob_name = request.data.decode()
+    blob_name = request.args.get("s_id")
     json_object = {}
     json_object["gpsData"] = gpsData
     json_object["blindspotData"] = blindspotData

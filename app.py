@@ -1,15 +1,15 @@
 import socket
 import time
 from monitoring_communicator import establishUDPConnection
-from picamera import PiCamera, PiCameraCircularIO
+#from picamera import PiCamera, PiCameraCircularIO
 import multiprocessing as mp
 import gps
 import requests
 import serial
 import subprocess
 
-# API_URL = "http://localhost:8080/"
-API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
+API_URL = "http://localhost:8080/"
+# API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
 
 # cameraModule = recording.camStuff()
 
@@ -113,6 +113,7 @@ Returns session ID
 def prepareDrivingSession(username, password):
     sessionStart = False
     s_id = -1
+    uid = -1
     while(sessionStart == False):
         payload = {"username": username, "password": password}
         response = requests.get(API_URL+"auth", params=payload)
@@ -126,8 +127,8 @@ def prepareDrivingSession(username, password):
                 # print("SESSION ID", s_id)
                 sessionStart = True
     
-    return s_id
-
+    return s_id,uid
+"""
 def doCamStuff(acc):
     camera = PiCamera(resolution=(1920, 1080))
     stream = PiCameraCircularIO(camera, seconds=60)
@@ -149,7 +150,7 @@ def doCamStuff(acc):
         stream.close()
         exit(1)
 
-        
+"""
 
 
 """
@@ -176,13 +177,15 @@ def initialization():
 
     username = conn.recv(1024)
     username = username.decode()
-
+    print("Got username", username)
     password = conn.recv(1024)
     password = password.decode()
-
-    s_id = prepareDrivingSession(username, password)
-
+    s_id, u_id = prepareDrivingSession(username, password)
+    print("got driving session", s_id)
     if(s_id != None):
+        requests.post(DB_URL+"endSession", params={"s_id": s_id, "_id": u_id})
+        requests.get(API_URL+"end", params={"token": s_id, "_id": u_id})
+        s.close()
         conn.close()
         exit(1)
     for ip in UDP_IPs:
@@ -200,8 +203,8 @@ def initialization():
     speedCheckBuzzer.start()
 
     acc = mp.Value('d', 0.0)
-    cameraT = mp.Process(target=doCamStuff, args=(acc,))
-    cameraT.start()
+    #cameraT = mp.Process(target=doCamStuff, args=(acc,))
+    #cameraT.start()
  
 
     while(True):
@@ -209,13 +212,13 @@ def initialization():
         cmd = cmd.decode()
 
         if(cmd == "end"):
-            requests.get(DB_URL+"end", data=s_id)
+            requests.post(DB_URL+"endSession", data={"s_id": s_id})
             gpsT.kill()
             for th in monitoring_threads:
                 th.kill()
             obdT.kill()
             speedCheckBuzzer.kill()
-            cameraT.kill()
+            #cameraT.kill()
             conn.close()
             exit(-1)
 
