@@ -8,8 +8,8 @@ import requests
 import serial
 import subprocess
 
-API_URL = "http://localhost:8080/"
-# API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
+# API_URL = "http://localhost:8080/"
+API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
 
 # cameraModule = recording.camStuff()
 
