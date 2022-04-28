@@ -84,6 +84,7 @@ def post_accident_detected():
 
 @api.route("/endSession", methods=['POST'])
 def post_end_session():
+    global accident
     blob_name = request.args.get("s_id")
     json_object = {}
     json_object["gpsData"] = gpsData

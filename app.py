@@ -1,7 +1,7 @@
 import socket
 import time
 from monitoring_communicator import establishUDPConnection
-#from picamera import PiCamera, PiCameraCircularIO
+from picamera import PiCamera, PiCameraCircularIO
 import multiprocessing as mp
 import gps
 import requests
@@ -14,7 +14,7 @@ API_URL = "https://vehicle-tracking-capstone-2021.ue.r.appspot.com/"
 # cameraModule = recording.camStuff()
 
 # ====================== BLINDSPOT MONITORING VARIABLES ======================
-UDP_IPs = ["192.168.30.61", "192.168.30.218", "192.168.30.96", "192.168.30.58"] # UDP IPs for blindspot monitoring sensors
+UDP_IPs = ["192.168.183.61", "192.168.183.218", "192.168.183.96", "192.168.183.58"] # UDP IPs for blindspot monitoring sensors
 UDP_PORT = 2390 # UDP Port for blindspot monitoring sensors
 monitoring_threads = [] # Array of blindspot monitoring threads
 # ============================================================================
@@ -92,7 +92,7 @@ def buzzerForSpeedcheck():
         if(len(gpsReq.json()) > 0):
             obdReq = requests.get(DB_URL + "getLastOBD")
             if(len(obdReq.json()) > 0):
-                carSpeed = int(obdReq.json()['speed'])
+                carSpeed = float(obdReq.json()['speed'])
                 speedLimit = int(gpsReq.json()['speed'])
 
                 if(carSpeed > speedLimit + 10 and (time.time_ns() - lastBeep) > 20e+9 and speedLimit != 0):
@@ -116,6 +116,7 @@ def prepareDrivingSession(username, password):
     uid = -1
     while(sessionStart == False):
         payload = {"username": username, "password": password}
+        print(payload)
         response = requests.get(API_URL+"auth", params=payload)
         uid = response.json()
         if(uid != "Authentication Failed"):
@@ -130,7 +131,7 @@ def prepareDrivingSession(username, password):
                 s_id = -1
     
     return s_id,uid
-"""
+
 def doCamStuff(acc):
     camera = PiCamera(resolution=(1920, 1080))
     stream = PiCameraCircularIO(camera, seconds=60)
@@ -152,7 +153,7 @@ def doCamStuff(acc):
         stream.close()
         exit(1)
 
-"""
+
 
 
 """
@@ -182,6 +183,7 @@ def initialization():
     print("Got username", username)
     password = conn.recv(1024)
     password = password.decode()
+    print("Got password", password)
     s_id, u_id = prepareDrivingSession(username, password)
     print("got driving session", s_id)
     if(s_id == None or s_id == -1):
@@ -203,14 +205,15 @@ def initialization():
     speedCheckBuzzer.start()
 
     acc = mp.Value('d', 0.0)
-    #cameraT = mp.Process(target=doCamStuff, args=(acc,))
-    #cameraT.start()
+    cameraT = mp.Process(target=doCamStuff, args=(acc,))
+    cameraT.start()
  
-
+    print("Started all threads...")
     while(True):
         cmd = conn.recv(1024)
         cmd = cmd.decode()
-
+        print("HAHA")
+        # cmd = input()
         if(cmd == "end"):
             requests.post(DB_URL+"endSession", params={"s_id": s_id, "_id": u_id})
             try:
